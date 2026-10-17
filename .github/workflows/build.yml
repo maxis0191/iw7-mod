@@ -3,10 +3,10 @@ name: Build
 on:
   push:
     branches:
-      - "*"
+      - "**"
   pull_request:
     branches:
-      - "*"
+      - "**"
     types: [opened, synchronize, reopened]
 concurrency:
   group: ${{ github.ref }}
@@ -31,8 +31,8 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
-          # NOTE - If LFS ever starts getting used during builds, switch this to true!
-          lfs: true
+          # Native fork builds do not require the upstream distribution's LFS data.
+          lfs: ${{ github.repository_owner == 'CBServers' }}
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v3
@@ -55,6 +55,7 @@ jobs:
           #  build/bin/x64/${{matrix.configuration}}/iw7-mod.pdb
             
       - name: Upload ${{matrix.configuration}} data artifacts
+        if: github.repository_owner == 'CBServers'
         uses: actions/upload-artifact@v7
         with:
           name: ${{matrix.configuration}} data artifacts
