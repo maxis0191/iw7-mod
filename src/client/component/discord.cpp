@@ -552,7 +552,9 @@ namespace discord
 				return;
 			}
 
+#ifdef _DEBUG
 			console::debug("Discord: join_game called with secret '%s'\n", join_secret);
+#endif
 
 			std::string token;
 			std::string address;
