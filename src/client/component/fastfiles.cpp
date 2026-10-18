@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "fastfiles.hpp"
+#include "physics_packfile.hpp"
 
 #include "game/game.hpp"
 
@@ -516,61 +517,9 @@ namespace fastfiles
 		utils::hook::detour db_is_patch_hook;
 		utils::hook::detour physics_asset_post_load_hook;
 
-		struct hk_packfile_header
-		{
-			std::uint32_t magic[2];
-			std::int32_t user_tag;
-			std::int32_t file_version;
-			std::uint8_t layout_rules[4];
-			std::int32_t num_sections;
-			std::int32_t contents_section_index;
-			std::int32_t contents_section_offset;
-			std::int32_t contents_class_name_section_index;
-			std::int32_t contents_class_name_section_offset;
-			char contents_version[16];
-			std::uint32_t flags;
-			std::int32_t pad;
-		};
-		static_assert(offsetof(hk_packfile_header, layout_rules) == 16);
-		static_assert(offsetof(hk_packfile_header, contents_version) == 40);
-		static_assert(offsetof(hk_packfile_header, flags) == 56);
-
 		const char* invalid_havok_data(const game::PhysicsAsset* asset)
 		{
-			if (!asset->havokData || !asset->havokDataSize)
-			{
-				return "no havok data";
-			}
-
-			if (reinterpret_cast<std::uintptr_t>(asset->havokData) & 3)
-			{
-				return "havok data not 4 byte aligned";
-			}
-
-			const auto* header = reinterpret_cast<const hk_packfile_header*>(asset->havokData);
-			if (header->magic[0] != 0x57E0E057 || header->magic[1] != 0x10C0C010)
-			{
-				return "no packfile magic";
-			}
-
-			const std::uint8_t layout[4] = { 8, 1, 0, 1 };
-			if (std::memcmp(header->layout_rules, layout, sizeof(layout)))
-			{
-				return "packfile layout differs from the platform's";
-			}
-
-			if (static_cast<std::uint8_t>(header->contents_version[0]) == 0xFF ||
-				std::strncmp(header->contents_version, "hk_2014.2.5-r1", sizeof(header->contents_version)))
-			{
-				return "packfile contents version differs";
-			}
-
-			if (header->flags & 1)
-			{
-				return "packfile already loaded";
-			}
-
-			return nullptr;
+			return physics::invalid_havok_data(asset->havokData, asset->havokDataSize);
 		}
 
 		void physics_asset_post_load_stub(game::PhysicsAsset* asset)
