@@ -1,4 +1,4 @@
-name: Physics packfile Source checks
+name: Physics packfile validation
 
 on:
   push:
