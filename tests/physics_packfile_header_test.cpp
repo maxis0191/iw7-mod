@@ -1,4 +1,5 @@
-// AUTHORED, UNCOMPILED fixture. Synthetic bytes only; no game or packfile IO.
+// Authored synthetic fixture; uncompiled/unexecuted at initial Source preparation.
+// Any later hosted sanitizer run is separate CI evidence. No game or packfile IO.
 #include "../src/client/component/physics_packfile.hpp"
 
 #include <array>

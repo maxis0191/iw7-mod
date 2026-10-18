@@ -17,19 +17,31 @@ inputs receive `havok data shorter than packfile header`. Full-size alignment,
 magic, layout, bounded version and loaded-flag checks retain their old order,
 reason strings and accepted cases. This still validates only the fixed header.
 
-`tests/physics_packfile_header_test.cpp` is **AUTHORED, UNCOMPILED, UNEXECUTED**.
+At initial Source preparation (`d510986`),
+`tests/physics_packfile_header_test.cpp` was **AUTHORED, UNCOMPILED, UNEXECUTED**.
 It calls the production helper with authored valid 64-byte headers, allocated
 prefixes and declared truncations 0..63, 65/80-byte cases, null and unaligned
 pointers, both magic words, all layout bytes, invalid versions and loaded flags.
 No stock bytes, packfile body parsing or runtime evidence is involved.
 
 `python -B tests/physics_packfile_source_test.py` passed Source extraction and
-guard ordering against the exact base. It does not compile or execute C++ and
-cannot establish absence of a native crash or successful gameplay. No build,
-SDK probe, installed binary change, package, lease, game, publication or CI is
-part of this local Source candidate. Root and qualification review the exact
-commit before deciding any later validation or publication.
+guard ordering against the exact base during that preparation. The script never
+compiles or executes C++ and cannot establish absence of a native crash or
+successful gameplay. No local build, SDK probe, installed binary change, package,
+lease, game or publication is part of this Source preparation.
 
 The first Source comparison detected an incidental final newline added to
 `fastfiles.cpp`; restoring the base file's ending made the exact extraction
 check pass. No C++ result is inferred from this Source-only correction.
+
+The dedicated `physics-packfile-source.yml` workflow prepares later hosted
+validation on `ubuntu-24.04`, using the existing checkout action version with
+full baseline history, Source-only sparse paths, LFS and submodules disabled.
+Its finite steps run the Source checker, compile this same standalone fixture
+as C++17 with g++/ASan/UBSan, and execute it with fail-fast sanitizers. Each
+command has a timeout and the whole job has a five-minute limit. It installs
+nothing and neither builds nor launches IW7. The old native build workflow is
+unchanged. This workflow has not been published or triggered during preparation;
+Root exact-Source approval and a separate remote-CI/push GO precede activation.
+Any subsequent CI evidence must identify its exact commit and run separately
+from the initial uncompiled status and from native/gameplay validation.

@@ -1,4 +1,4 @@
-"""Source checks only: the authored C++ fixture is not compiled or executed."""
+"""Source checks only; this script never compiles or executes the C++ fixture."""
 from pathlib import Path
 import re
 import subprocess
@@ -49,4 +49,4 @@ old_region = original[original.index('struct hk_packfile_header'):original.index
 expected = original.replace(old_region, wrapper).replace('#include "fastfiles.hpp"', '#include "fastfiles.hpp"\n#include "physics_packfile.hpp"')
 assert current == expected
 assert 'const unsigned int havok_data_size' in body
-print('Source checks passed: unsigned field type, unchanged layout/reasons, early bounds and exact production delegation; C++ fixture AUTHORED UNCOMPILED UNEXECUTED.')
+print('Source checks passed: unsigned field type, unchanged layout/reasons, early bounds and exact production delegation; C++ compilation/execution are separate validation.')
