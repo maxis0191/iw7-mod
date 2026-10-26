@@ -99,7 +99,12 @@ namespace download
 
 		void menu_error(const std::string& error)
 		{
-			throw std::runtime_error(error);
+			// Downloads run on the async scheduler thread, where nothing catches an exception.
+			scheduler::once([=]
+			{
+				ui_scripting::notify("mod_download_done", {});
+				game::shared::menu_error(error);
+			}, scheduler::pipeline::lui);
 		}
 	}
 
