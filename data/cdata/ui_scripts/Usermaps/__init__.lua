@@ -6,13 +6,20 @@ local function is_usermap(name)
     return type(name) == "string" and io.fileexists("usermaps/" .. name .. "/" .. name .. ".ff")
 end
 
+-- Per-map player data is indexed by the stock map names, so a usermap has no entry:
+-- the MP leaderboards and the zombies map list (time played per map) read it as zero.
+local per_map_stats = {
+    leaderboarddata = true,
+    duration = true
+}
+
 local GetPlayerDataEx_og = Engine.GetPlayerDataEx
 Engine.GetPlayerDataEx = function(...)
-    local leaderboard = false
+    local per_map = false
     for _, arg in ipairs({...}) do
-        if arg == "leaderboarddata" then
-            leaderboard = true
-        elseif leaderboard and is_usermap(arg) then
+        if per_map_stats[arg] then
+            per_map = true
+        elseif per_map and is_usermap(arg) then
             return 0
         end
     end
