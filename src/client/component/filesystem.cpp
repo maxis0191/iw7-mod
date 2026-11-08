@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "filesystem.hpp"
+#include "download_cache.hpp"
 
 #include "component/dvars.hpp"
 #include "component/console/console.hpp"
@@ -80,6 +81,12 @@ namespace filesystem
 			filesystem::register_path(sys_default_install_path_stub() + "/"s + "iw7-mod"s);
 
 			fs_startup_hook.invoke<void>(name);
+
+			const auto* fs_game = game::Dvar_FindVar("fs_game");
+			if (fs_game && fs_game->current.string && *fs_game->current.string)
+			{
+				download_cache::mark_used(fs_game->current.string);
+			}
 
 			fs_display_path();
 			console::info("----------------------\n");
