@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 
 #include "download.hpp"
+#include "download_cache.hpp"
 #include "console/console.hpp"
 #include "scheduler.hpp"
 #include "party.hpp"
@@ -207,6 +208,7 @@ namespace download
 					}
 
 					utils::io::write_file(file.name, result.buffer, false);
+					download_cache::record_download(file.name);
 				}
 			}
 

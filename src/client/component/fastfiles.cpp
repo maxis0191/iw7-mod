@@ -8,6 +8,7 @@
 #include "console/console.hpp"
 
 #include "filesystem.hpp"
+#include "download_cache.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -649,6 +650,8 @@ namespace fastfiles
 
 	void set_usermap(const std::string& usermap)
 	{
+		download_cache::mark_used("usermaps/" + usermap);
+
 		current_usermap.access([&](std::optional<std::string>& current_usermap_)
 		{
 			current_usermap_ = usermap;
