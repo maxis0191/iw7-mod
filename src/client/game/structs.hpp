@@ -450,6 +450,12 @@ namespace game
 		int useZlib;
 	};
 
+	struct VoicePacket_t
+	{
+		char data[256];
+		int dataSize;
+	}; assert_sizeof(VoicePacket_t, 0x104);
+
 	enum CriticalSection : std::int32_t
 	{
 		CRITSECT_DEMONWARE = 39,

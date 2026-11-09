@@ -68,6 +68,9 @@ namespace game
 	WEAK symbol<void(int localClientNum, void* hostInfo, const netadr_s* addr, const char* mapname, const char* gametype)>
 		CL_MainMP_ConnectAndPreloadMap{ 0x1409AED80 };
 	WEAK symbol<void(int localClientNum, uiClientState_t* state)> CL_GetClientState{ 0x1409BFFF0 };
+	WEAK symbol<int(int localClientNum)> CL_ControllerIndexFromClientNum{ 0x140347690 };
+	WEAK symbol<bool(SessionData* session, int clientNum)> CL_IsPlayerMuted{ 0x14037BBA0 };
+	WEAK symbol<bool(SessionData* session, int localClientNum, int clientNum)> CL_ShouldSendVoiceTo{ 0x14099E210 };
 
 	WEAK symbol<void(int localClientNum, int andMask)> CL_Keys_RemoveCatcher{ 0x1409A9B00 };
 
@@ -249,9 +252,14 @@ namespace game
 	WEAK symbol<std::uint64_t(const void* session, const int clientNum)> Session_GetXuid{ 0x140C72AB0 };
 	WEAK symbol<bool(const SessionData* session, const int memberIndex)> Session_IsHost{ 0x140D9B470 };
 	WEAK symbol<bool(const SessionData* session, const int memberIndex)> Session_IsUserRegistered{ 0x140C72BA0 };
+	WEAK symbol<void(SessionData* session, int clientNum)> Session_UnregisterRemotePlayer{ 0x140C73970 };
 	WEAK symbol<PartyData* ()> Party_GetServerSession{ 0x1409B2840 };
 	WEAK symbol<__int64 (msg_t* msg, ClientAuthoritativeMemberInfo* memberInfo, unsigned __int64 xuid)> Party_ReadMemberInfo{ 0x1409CEA30 };
 	WEAK symbol<bool(PartyData* partyData, PartyActiveClient* activeClient, int ms)> PartyClient_Frame{ 0x1409C9950 };
+
+	WEAK symbol<int(int controllerIndex, SessionData* session)> Voice_GetLocalTalker{ 0x140D32920 };
+	WEAK symbol<bool(int talker, int clientNum)> Voice_ShareChannel{ 0x1409C3EF0 };
+	WEAK symbol<void(SessionData* session, int talker, const char* data, int size, int localClientNum)> Voice_IncomingVoiceData{ 0x140D59620 };
 
 	WEAK symbol<char* ()> Sys_Cwd{ 0x140CFE5A0 };
 	
@@ -443,6 +451,9 @@ namespace game
 	WEAK symbol<SessionData> g_serverSession{ 0x146B4E080 };
 
 	WEAK symbol<clientUIActive_t> clientUIActives{ 0x142246C30 };
+
+	WEAK symbol<VoicePacket_t> cl_voicePackets{ 0x1422553D0 };
+	WEAK symbol<int> cl_voicePacketCount{ 0x142255DF8 };
 
 	WEAK symbol<connection_data*> cl_con_data{ 0x141FE58B8 };
 	WEAK symbol<PartyData> g_partyData{ 0x145254DA0 };
