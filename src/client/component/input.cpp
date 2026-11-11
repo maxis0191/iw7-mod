@@ -40,6 +40,7 @@ namespace input
 		std::atomic<menu_movement_state> menu_movement = menu_movement_state::off;
 		std::atomic<std::chrono::steady_clock::time_point> menu_movement_armed_at{};
 		int menu_movement_held[256]{};
+		thread_local bool in_cmd_input_check = false;
 
 		std::vector<int> get_bindings_for_cmds(const std::initializer_list<const char*>& commands)
 		{
@@ -92,6 +93,29 @@ namespace input
 			utils::hook::invoke<void>(0x14035DFB0, local_client_num, binding, key, 1); // CL_InputMP_ExecBinding
 		}
 
+		bool is_menu_movement_active()
+		{
+			return menu_movement == menu_movement_state::active && *game::keyCatchers == ui_key_catcher;
+		}
+
+		bool cl_cmd_input_allowed_stub(const int local_client_num)
+		{
+			in_cmd_input_check = true;
+			const auto result = utils::hook::invoke<bool>(0x14023E6F0, local_client_num);
+			in_cmd_input_check = false;
+			return result;
+		}
+
+		bool cmd_key_is_catcher_active_stub(const int local_client_num, const int mask)
+		{
+			if (in_cmd_input_check && local_client_num == 0 && is_menu_movement_active())
+			{
+				return false;
+			}
+
+			return utils::hook::invoke<bool>(0x1409A9250, local_client_num, mask); // Key_IsCatcherActive
+		}
+
 		bool menu_movement_key_event(const int local_client_num, const int key, const int down)
 		{
 			if (local_client_num != 0 || key < 0 || key >= 256)
@@ -100,7 +124,7 @@ namespace input
 			}
 
 			update_menu_movement();
-			const auto in_menu = menu_movement == menu_movement_state::active && *game::keyCatchers == ui_key_catcher;
+			const auto in_menu = is_menu_movement_active();
 
 			if (!down && menu_movement_held[key])
 			{
@@ -377,6 +401,10 @@ namespace input
 			cl_execute_key_hook.create(0x14032A3B0, &cl_execute_key_stub);
 
 			scheduler::loop(update_menu_movement, scheduler::pipeline::main);
+
+			// the usercmd builder drops all key input while any key catcher is up: let it through for the menu that asked
+			utils::hook::call(0x14036DC77, cl_cmd_input_allowed_stub);
+			utils::hook::call(0x14023F720, cmd_key_is_catcher_active_stub);
 		}
 	};
 }
