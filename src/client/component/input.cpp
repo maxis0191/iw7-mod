@@ -7,6 +7,9 @@
 
 #include "gui/gui.hpp"
 
+#include "input.hpp"
+#include "scheduler.hpp"
+
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
@@ -23,6 +26,122 @@ namespace input
 		utils::hook::detour cl_mouse_move_hook;
 
 		int key_get_binding_for_cmd_stub(const char* command);
+
+		enum class menu_movement_state
+		{
+			off,
+			armed,
+			active,
+		};
+
+		constexpr auto ui_key_catcher = 0x40;
+		constexpr auto menu_movement_arm_time = 2000ms;
+
+		std::atomic<menu_movement_state> menu_movement = menu_movement_state::off;
+		std::atomic<std::chrono::steady_clock::time_point> menu_movement_armed_at{};
+		int menu_movement_held[256]{};
+
+		std::vector<int> get_bindings_for_cmds(const std::initializer_list<const char*>& commands)
+		{
+			std::vector<int> bindings{};
+			for (const auto* command : commands)
+			{
+				bindings.emplace_back(key_get_binding_for_cmd_stub(command));
+			}
+
+			return bindings;
+		}
+
+		bool is_menu_movement_hold(const int binding)
+		{
+			static const auto bindings = get_bindings_for_cmds({ "+forward", "+back", "+moveleft", "+moveright",
+				"+breath_sprint", "+sprint", "+gostand", "+stance", "+movedown", "+togglecrouch", "+prone", "+slide" });
+			return binding > 0 && std::ranges::find(bindings, binding) != bindings.end();
+		}
+
+		bool is_menu_movement_press(const int binding)
+		{
+			static const auto bindings = get_bindings_for_cmds({ "gocrouch", "goprone", "toggleprone" });
+			return binding > 0 && std::ranges::find(bindings, binding) != bindings.end();
+		}
+
+		void update_menu_movement()
+		{
+			const auto ui_open = (*game::keyCatchers & ui_key_catcher) != 0;
+			const auto state = menu_movement.load();
+
+			if (state == menu_movement_state::armed)
+			{
+				if (ui_open)
+				{
+					menu_movement = menu_movement_state::active;
+				}
+				else if (std::chrono::steady_clock::now() - menu_movement_armed_at.load() > menu_movement_arm_time)
+				{
+					menu_movement = menu_movement_state::off;
+				}
+			}
+			else if (state == menu_movement_state::active && !ui_open)
+			{
+				menu_movement = menu_movement_state::off;
+			}
+		}
+
+		void exec_binding(const int local_client_num, const int binding, const int key)
+		{
+			utils::hook::invoke<void>(0x14035DFB0, local_client_num, binding, key, 1); // CL_InputMP_ExecBinding
+		}
+
+		bool menu_movement_key_event(const int local_client_num, const int key, const int down)
+		{
+			if (local_client_num != 0 || key < 0 || key >= 256)
+			{
+				return false;
+			}
+
+			update_menu_movement();
+			const auto in_menu = menu_movement == menu_movement_state::active && *game::keyCatchers == ui_key_catcher;
+
+			if (!down && menu_movement_held[key])
+			{
+				exec_binding(local_client_num, menu_movement_held[key] + 1, key);
+				menu_movement_held[key] = 0;
+				return in_menu;
+			}
+
+			if (!in_menu)
+			{
+				return false;
+			}
+
+			const auto binding = game::playerKeys->keys[key].binding;
+			if (is_menu_movement_hold(binding))
+			{
+				if (!down)
+				{
+					exec_binding(local_client_num, binding + 1, key);
+				}
+				else if (!menu_movement_held[key])
+				{
+					exec_binding(local_client_num, binding, key);
+					menu_movement_held[key] = binding;
+				}
+
+				return true;
+			}
+
+			if (is_menu_movement_press(binding))
+			{
+				if (down)
+				{
+					exec_binding(local_client_num, binding, key);
+				}
+
+				return true;
+			}
+
+			return false;
+		}
 
 		void cl_char_event_stub(const int local_client_num, const int key)
 		{
@@ -47,6 +166,11 @@ namespace input
 			}
 			
 			if (!gui::gui_key_event(local_client_num, key, down))
+			{
+				return;
+			}
+
+			if (menu_movement_key_event(local_client_num, key, down))
 			{
 				return;
 			}
@@ -207,6 +331,24 @@ namespace input
 		}
 	}
 
+	void set_menu_movement(const bool enabled)
+	{
+		if (enabled)
+		{
+			menu_movement_armed_at = std::chrono::steady_clock::now();
+			menu_movement = (*game::keyCatchers & ui_key_catcher) ? menu_movement_state::active : menu_movement_state::armed;
+		}
+		else
+		{
+			menu_movement = menu_movement_state::off;
+		}
+	}
+
+	bool get_menu_movement()
+	{
+		return menu_movement != menu_movement_state::off;
+	}
+
 	class component final : public component_interface
 	{
 	public:
@@ -233,6 +375,8 @@ namespace input
 
 			// execute custom binds
 			cl_execute_key_hook.create(0x14032A3B0, &cl_execute_key_stub);
+
+			scheduler::loop(update_menu_movement, scheduler::pipeline::main);
 		}
 	};
 }

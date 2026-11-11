@@ -9,6 +9,7 @@
 #include "fastfiles.hpp"
 #include "filesystem.hpp"
 #include "game_module.hpp"
+#include "input.hpp"
 #include "localized_strings.hpp"
 #include "party.hpp"
 #include "scheduler.hpp"
@@ -258,6 +259,16 @@ namespace ui_scripting
 			{
 				return static_cast<bool>(::game::DB_IsXAssetDefault(::game::ASSET_TYPE_MATERIAL,
 					material.data()));
+			};
+
+			game_type["setmenumovement"] = [](const game&, const bool& enabled)
+			{
+				input::set_menu_movement(enabled);
+			};
+
+			game_type["getmenumovement"] = [](const game&)
+			{
+				return input::get_menu_movement();
 			};
 
 			auto scheduler = table();
