@@ -40,7 +40,6 @@ namespace input
 		std::atomic<menu_movement_state> menu_movement = menu_movement_state::off;
 		std::atomic<std::chrono::steady_clock::time_point> menu_movement_armed_at{};
 		int menu_movement_held[256]{};
-		thread_local bool in_cmd_input_check = false;
 
 		std::vector<int> get_bindings_for_cmds(const std::initializer_list<const char*>& commands)
 		{
@@ -98,22 +97,17 @@ namespace input
 			return menu_movement == menu_movement_state::active && *game::keyCatchers == ui_key_catcher;
 		}
 
-		bool cl_cmd_input_allowed_stub(const int local_client_num)
+		utils::hook::detour cl_cmd_buttons_hook;
+		void cl_cmd_buttons_stub(const int local_client_num, std::uint64_t* buttons)
 		{
-			in_cmd_input_check = true;
-			const auto result = utils::hook::invoke<bool>(0x14023E6F0, local_client_num);
-			in_cmd_input_check = false;
-			return result;
-		}
+			cl_cmd_buttons_hook.invoke<void>(local_client_num, buttons);
 
-		bool cmd_key_is_catcher_active_stub(const int local_client_num, const int mask)
-		{
-			if (in_cmd_input_check && local_client_num == 0 && is_menu_movement_active())
+			// any key catcher marks the usercmd as "in UI" (0x2000000) unless cl_bypassMouseInput is set,
+			// and the player then stands still: not for the menu that asked to keep the movement
+			if (local_client_num == 0 && is_menu_movement_active())
 			{
-				return false;
+				*buttons &= ~0x2000000ull;
 			}
-
-			return utils::hook::invoke<bool>(0x1409A9250, local_client_num, mask); // Key_IsCatcherActive
 		}
 
 		bool menu_movement_key_event(const int local_client_num, const int key, const int down)
@@ -402,9 +396,7 @@ namespace input
 
 			scheduler::loop(update_menu_movement, scheduler::pipeline::main);
 
-			// the usercmd builder drops all key input while any key catcher is up: let it through for the menu that asked
-			utils::hook::call(0x14036DC77, cl_cmd_input_allowed_stub);
-			utils::hook::call(0x14023F720, cmd_key_is_catcher_active_stub);
+			cl_cmd_buttons_hook.create(0x1403597F0, cl_cmd_buttons_stub);
 		}
 	};
 }
